@@ -73,25 +73,29 @@ class Att_particleInstancerToGeo():
     def _convert(self, data):
         self.data["geoType"] = mc.radioButton(mc.radioCollection(self.ui.get("geoType"), query=True, select=True), query=True, data=True)
         self.data["timeRange"] = mc.radioButton(mc.radioCollection(self.ui.get("timeRange"), query=True, select=True), query=True, data=True)
-        self.data["startFrame"] = mc.textField(self.ui.get("startFrame"), query=True, text=True)
-        self.data["endFrame"] = mc.textField(self.ui.get("endFrame"), query=True, text=True)
-        self.data["byFrame"] = mc.textField(self.ui.get("byFrame"), query=True, text=True)
+        self.data["byFrame"] = int(float(mc.textField(self.ui.get("byFrame"), query=True, text=True)))
+        
+        #time slider
+        if self.data["timeRange"] == 0:
+            self.data["startFrame"] = int(float(mc.playbackOptions(query=True, minTime=True)))
+            self.data["endFrame"] = int(float(mc.playbackOptions(query=True, maxTime=True)))
+        #from current
+        elif self.data["timeRange"] == 1:
+            self.data["startFrame"] = mc.currentTime(query=True)
+            self.data["endFrame"] = int(float(mc.playbackOptions(query=True, maxTime=True)))
+        #start
+        elif self.data["timeRange"] == 2:
+            self.data["startFrame"] = int(float(mc.textField(self.ui.get("startFrame"), query=True, text=True)))
+            self.data["endFrame"] = int(float(mc.playbackOptions(query=True, maxTime=True)))
+        #start/end
+        elif self.data["timeRange"] == 3:
+            self.data["startFrame"] = int(float(mc.textField(self.ui.get("startFrame"), query=True, text=True)))
+            self.data["endFrame"] = int(float(mc.textField(self.ui.get("endFrame"), query=True, text=True)))
     #end def
 #end class
 
 Att_particleInstancerToGeo()
 '''
-# RUN MAIN PROCEDURE WITH SETTINGS FROM GUI 
-def sag_instancerToGeometry_cmd():
-    dupOrInst = radioButtonGrp( 'sag_instancerToGeometry_win__dupOrInst_RBG', q = True, select = True ) - 1
-    fromCurFrame = checkBox( 'sag_instancerToGeometry_win__fromCurFrame_ChB', q = True, value = True )
-    rangeSpecified = radioButtonGrp( 'sag_instancerToGeometry_win__range_RBG', q = True, select = True ) - 1
-    start = intFieldGrp( 'sag_instancerToGeometry_win__range_IFG', q = True, value1 = True )
-    end = intFieldGrp( 'sag_instancerToGeometry_win__range_IFG', q = True, value2 = True )
-
-    sag_instancerToGeometry_do( dupOrInst, fromCurFrame, rangeSpecified, start, end )
-
-
 # MAIN PROCEDURE
 def sag_instancerToGeometry_do( dupOrInst, fromCurFrame, rangeSpecified, start, end ):
 
