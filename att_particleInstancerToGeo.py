@@ -4,6 +4,7 @@ import maya.OpenMaya as om
 class Att_particleInstancerToGeo():
     def __init__(self):
         self.ui = {"windowName": "instancerToGeo", "windowTitle": "Convert Particle Instances to Geo"}
+        self.data = {}
         
         if mc.window(self.ui.get("windowName"), query=True, exists=True):
             om.MGlobal.displayWarning("Window already exists, deleting!")
@@ -25,18 +26,18 @@ class Att_particleInstancerToGeo():
         
         mc.text(label="Geometry type:")
         self.ui["geoType"] = mc.radioCollection()
-        copy_rb = mc.radioButton(label="Copy", collection=self.ui.get("geoType"))
+        copy_rb = mc.radioButton(label="Copy", collection=self.ui.get("geoType"), data=0)
         mc.text(label="")
-        instance_rb = mc.radioButton(label="Instance", collection=self.ui.get("geoType"))
+        instance_rb = mc.radioButton(label="Instance", collection=self.ui.get("geoType"), data=1)
         mc.radioCollection(self.ui.get("geoType"), edit=True, select=copy_rb)
         
         mc.text(label="Time range:")
         self.ui["timeRange"] = mc.radioCollection()
         mc.rowLayout(numberOfColumns=4)
-        timeSlider_rb = mc.radioButton(label="Time Slider", collection=self.ui.get("timeRange"))
-        fromCurrent_rb = mc.radioButton(label="From Current", collection=self.ui.get("timeRange"))
-        start_rb = mc.radioButton(label="Start", collection=self.ui.get("timeRange"), onCommand=lambda x: self._timeRangeStart(True), offCommand=lambda x: self._timeRangeStart(False))
-        startEnd_rb = mc.radioButton(label="Start/End", collection=self.ui.get("timeRange"), onCommand=lambda x: self._timeRangeStartEnd(True), offCommand=lambda x: self._timeRangeStartEnd(False))
+        timeSlider_rb = mc.radioButton(label="Time Slider", collection=self.ui.get("timeRange"), data=0)
+        fromCurrent_rb = mc.radioButton(label="From Current", collection=self.ui.get("timeRange"), data=1)
+        start_rb = mc.radioButton(label="Start", collection=self.ui.get("timeRange"), onCommand=lambda x: self._timeRangeStart(True), offCommand=lambda x: self._timeRangeStart(False), data=2)
+        startEnd_rb = mc.radioButton(label="Start/End", collection=self.ui.get("timeRange"), onCommand=lambda x: self._timeRangeStartEnd(True), offCommand=lambda x: self._timeRangeStartEnd(False), data=3)
         mc.radioCollection(self.ui.get("timeRange"), edit=True, select=timeSlider_rb)
         
         mc.setParent(self.ui["rowCol"])
@@ -70,63 +71,16 @@ class Att_particleInstancerToGeo():
     #end def
     
     def _convert(self, data):
-        pass
+        self.data["geoType"] = mc.radioButton(mc.radioCollection(self.ui.get("geoType"), query=True, select=True), query=True, data=True)
+        self.data["timeRange"] = mc.radioButton(mc.radioCollection(self.ui.get("timeRange"), query=True, select=True), query=True, data=True)
+        self.data["startFrame"] = mc.textField(self.ui.get("startFrame"), query=True, text=True)
+        self.data["endFrame"] = mc.textField(self.ui.get("endFrame"), query=True, text=True)
+        self.data["byFrame"] = mc.textField(self.ui.get("byFrame"), query=True, text=True)
     #end def
 #end class
 
 Att_particleInstancerToGeo()
 '''
-def sag_instancerToGeometry():
-    if window( 'sag_instancerToGeometry_win', exists = True ): 
-        deleteUI( 'sag_instancerToGeometry_win' )
-
-    window( 'sag_instancerToGeometry_win', title = 'Instancer to Geo', sizeable = False )
-
-    columnLayout( adj = True )
-
-    radioButtonGrp( 'sag_instancerToGeometry_win__dupOrInst_RBG', 
-                    labelArray2 = ['Make Duplicates', 'Make Instances'],
-                    numberOfRadioButtons = 2,
-                    select = 2 )
-
-    separator( style = 'in' )
-
-    checkBox( 'sag_instancerToGeometry_win__fromCurFrame_ChB', 
-                align = 'left',
-                label = 'Start from Current Frame', 
-                value = 1 )
-
-    radioButtonGrp( 'sag_instancerToGeometry_win__range_RBG',
-                    labelArray2 = ['Playback Range', 'Custom Range'], 
-                    numberOfRadioButtons = 2, 
-                    select = 1,
-                    onCommand1 = 'intFieldGrp( "sag_instancerToGeometry_win__range_IFG", edit = True, enable1 = False, enable2 = False )', 
-                    onCommand2 = 'intFieldGrp( "sag_instancerToGeometry_win__range_IFG", edit = True, enable1 = True, enable2 = True )' )
-
-    intFieldGrp( 'sag_instancerToGeometry_win__range_IFG',
-                label = '',
-                numberOfFields = 2,
-                columnWidth = (1, 24),
-                value1 = playbackOptions( q = True, min = True ),
-                value2 = playbackOptions( q = True, max = True ),
-                enable1 = False,
-                enable2 = False )
-
-    sep2 = separator( style = 'in' )
-
-    rowLayout( numberOfColumns = 2, columnWidth2 = [ 172, 40 ], columnAlign2 = [ 'center', 'center' ] )
-
-    button( label = 'Convert',
-            width = 172,
-            command = 'sag_instancerToGeometry_cmd()' )
-
-    button( label = 'Help',
-            width = 48,
-            command = 'showHelp( "http://www.sigillarium.com/blog/726/", absolute = True )' )
-
-    showWindow( 'sag_instancerToGeometry_win' )
-
-
 # RUN MAIN PROCEDURE WITH SETTINGS FROM GUI 
 def sag_instancerToGeometry_cmd():
     dupOrInst = radioButtonGrp( 'sag_instancerToGeometry_win__dupOrInst_RBG', q = True, select = True ) - 1
