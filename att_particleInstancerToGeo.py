@@ -167,94 +167,111 @@ class Att_particleInstancerToGeo():
             
             #for every frame in time range
             particles = {}
-            for frame in range(self.data.get("startFrame"), self.data.get("endFrame") + 1, self.data.get("byFrame")):
+            deadParticles = []
+            for frame in range(self.data.get("startFrame"), self.data.get("endFrame") + 1):
                 mc.currentTime(frame, update=True)
                 
-                #get count of all existing instances
-                numInstances = mc.getAttr("{}.instanceCount".format(instancer["instancer"]))
-                
-                for i in range(0, numInstances):
-                    particleId = int(mc.particle(instancer["particleSys"], query=True, attribute="particleId", order=i)[0])
-                    particlePos = [0, 0, 0]
-                    particleScale = [1, 1, 1]
-                    particleShear = [0, 0, 0]
-                    particleVis = True
-                    particleIndex = 0
-                    particleRot = [0, 0, 0]
-                    particleAimDir = [0, 0, 0]
+                if (frame - self.data.get("startFrame")) % self.data.get("byFrame") == 0:
+                    #get count of all existing instances
+                    numInstances = mc.getAttr("{}.instanceCount".format(instancer["instancer"]))
                     
-                    if "position" in instancer["attrs"]:
-                        particlePos = mc.particle(instancer["particleSys"], query=True, attribute=instancer["attrs"][instancer["attrs"].index("position") + 1], id=particleId)
-                    #end if
-                    if "scale" in instancer["attrs"]:
-                        particleScale = mc.particle(instancer["particleSys"], query=True, attribute=instancer["attrs"][instancer["attrs"].index("scale") + 1], id=particleId)
-                    #end if
-                    if "shear" in instancer["attrs"]:
-                        particleShear = mc.particle(instancer["particleSys"], query=True, attribute=instancer["attrs"][instancer["attrs"].index("shear") + 1], id=particleId)
-                    #end if
-                    if "visibility" in instancer["attrs"]: 
-                        particleVis = mc.particle(instancer["particleSys"], query=True, attribute=instancer["attrs"][instancer["attrs"].index("visibility") + 1], id=particleId)
-                    #end if
-                    if "objectIndex" in instancer["attrs"]:
-                        particleIndex = int(mc.particle(instancer["particleSys"], query=True, attribute=instancer["attrs"][instancer["attrs"].index("objectIndex") + 1], id=particleId)[0])
-                    #end if
-                    
-                    if "rotation" in instancer["attrs"]:
-                        particleRot = mc.particle(instancer["particleSys"], query=True, attribute=instancer["attrs"][instancer["attrs"].index("rotation") + 1], id=particleId)
-                    #end if
-                    if "aimDirection" in instancer["attrs"]:
-                        particleAimDir = mc.particle(instancer["particleSys"], query=True, attribute=instancer["attrs"][instancer["attrs"].index("aimDirection") + 1], id=particleId)
-                    #end if
-                    '''
-                    # MISSING
-                    #    - rotation type
-                    #    - aim position
-                    #    - aim axis
-                    #    - aim up axis
-                    #    - aim world up
-                    '''
-                    
-                    #append particle to particles list if it doesn't already exist
-                    #create duplicate of instanced object
-                    if particleId not in particles:
-                        dupName = "{}_particleId{}".format(instancer["obj"][particleIndex], particleId)
-                        #depending on selected geo type create duplicate or instance
-                        dupObj = ""
-                        if self.data.get("geoType") == 0:
-                            print "copy object"
-                            #duplicate with input connections
-                            dupObj = mc.duplicate(instancer["obj"][particleIndex], returnRootsOnly=True, upstreamNodes=True, name=dupName)
-                        else:
-                            print "instance object"
-                            dupObj = mc.instance(instancer["obj"][particleIndex], name=dupName)
+                    for i in range(0, numInstances):
+                        particleId = int(mc.particle(instancer["particleSys"], query=True, attribute="particleId", order=i)[0])
+                        #append particle to dead particles by default, remove later if particle is still alive
+                        deadParticles.append(particleId)
+                        
+                        particlePos = [0, 0, 0]
+                        particleScale = [1, 1, 1]
+                        particleShear = [0, 0, 0]
+                        particleVis = True
+                        particleIndex = 0
+                        particleRot = [0, 0, 0]
+                        particleAimDir = [0, 0, 0]
+                        
+                        if "position" in instancer["attrs"]:
+                            particlePos = mc.particle(instancer["particleSys"], query=True, attribute=instancer["attrs"][instancer["attrs"].index("position") + 1], id=particleId)
+                        #end if
+                        if "scale" in instancer["attrs"]:
+                            particleScale = mc.particle(instancer["particleSys"], query=True, attribute=instancer["attrs"][instancer["attrs"].index("scale") + 1], id=particleId)
+                        #end if
+                        if "shear" in instancer["attrs"]:
+                            particleShear = mc.particle(instancer["particleSys"], query=True, attribute=instancer["attrs"][instancer["attrs"].index("shear") + 1], id=particleId)
+                        #end if
+                        if "visibility" in instancer["attrs"]: 
+                            particleVis = mc.particle(instancer["particleSys"], query=True, attribute=instancer["attrs"][instancer["attrs"].index("visibility") + 1], id=particleId)
+                        #end if
+                        if "objectIndex" in instancer["attrs"]:
+                            particleIndex = int(mc.particle(instancer["particleSys"], query=True, attribute=instancer["attrs"][instancer["attrs"].index("objectIndex") + 1], id=particleId)[0])
                         #end if
                         
-                        #group duplicated object, transfer particle values to group
-                        dupGrp = mc.group(empty=True, name="{}_grp".format(dupName))
-                        mc.parent(dupGrp, dupObj)
-                        mc.xform(dupGrp, t=(0, 0, 0))
-                        mc.parent(dupGrp, world=True)
-                        mc.parent(dupObj, dupGrp)
+                        if "rotation" in instancer["attrs"]:
+                            particleRot = mc.particle(instancer["particleSys"], query=True, attribute=instancer["attrs"][instancer["attrs"].index("rotation") + 1], id=particleId)
+                        #end if
+                        if "aimDirection" in instancer["attrs"]:
+                            particleAimDir = mc.particle(instancer["particleSys"], query=True, attribute=instancer["attrs"][instancer["attrs"].index("aimDirection") + 1], id=particleId)
+                        #end if
+                        '''
+                        # MISSING
+                        #    - rotation type
+                        #    - aim position
+                        #    - aim axis
+                        #    - aim up axis
+                        #    - aim world up
+                        '''
                         
-                        particles[particleId] = dupGrp
+                        #append particle to particles list if it doesn't already exist
+                        #create duplicate of instanced object
+                        if particleId not in particles:
+                            dupName = "{}_particleId{}".format(instancer["obj"][particleIndex], particleId)
+                            #depending on selected geo type create duplicate or instance
+                            dupObj = ""
+                            if self.data.get("geoType") == 0:
+                                #duplicate with input connections
+                                dupObj = mc.duplicate(instancer["obj"][particleIndex], returnRootsOnly=True, upstreamNodes=True, name=dupName)
+                            else:
+                                dupObj = mc.instance(instancer["obj"][particleIndex], name=dupName)
+                            #end if
+                            
+                            #group duplicated object, transfer particle values to group
+                            dupGrp = mc.group(empty=True, name="{}_grp".format(dupName))
+                            mc.parent(dupGrp, dupObj)
+                            mc.xform(dupGrp, t=(0, 0, 0))
+                            mc.parent(dupGrp, world=True)
+                            mc.parent(dupObj, dupGrp)
+                            
+                            #key visibility on previous frame to be invisible
+                            mc.setKeyframe("{}.visibility".format(dupGrp), time=mc.currentTime(query=True) - 1, value=False)
+                            particles[particleId] = dupGrp
+                        #end if
+                        
+                        #translate duplicated object to particle position
+                        mc.xform(particles[particleId], t=particlePos, ws=True)
+                        #set scale to match particle scale
+                        mc.xform(particles[particleId], s=particleScale, ws=True)
+                        #set rotation order to match instancer roo
+                        mc.setAttr("{}.rotateOrder".format(particles[particleId]), instancerRoo)
+                        #create tmp locator to aim duplicated object
+                        locAim = mc.spaceLocator()
+                        mc.xform(locAim, t=(particlePos[0] + particleAimDir[0], particlePos[1] + particleAimDir[1], particlePos[2] + particleAimDir[2]), ws=True)
+                        aimCnst = mc.aimConstraint(locAim, particles[particleId], mo=False)
+                        #set visibility
+                        mc.setAttr("{}.visibility".format(particles[particleId]), particleVis)
+                        
+                        #key duplicated object on current frame
+                        mc.setKeyframe(particles[particleId], attribute=("translate", "rotate", "scale", "visibility"))
+                        
+                        #delete aim constraint and aim locator
+                        mc.delete(aimCnst, locAim)
+                    #end for
+                #end if
+                
+                #make dead particles invisible and remove them from particles array
+                particleIds = mc.getParticleAttr(instancer["particleSys"], attribute="particleId", array=True)
+                for particle in list(particles):
+                    if particle not in particleIds:
+                        mc.setKeyframe(particles[particle], attribute="visibility", value=0)
+                        particles.pop(particle)
                     #end if
-                    
-                    #translate duplicated object to particle position
-                    mc.xform(particles[particleId], t=particlePos, ws=True)
-                    #set scale to match particle scale
-                    mc.xform(particles[particleId], s=particleScale, ws=True)
-                    #set rotation order to match instancer roo
-                    mc.setAttr("{}.rotateOrder".format(particles[particleId]), instancerRoo)
-                    #create tmp locator to aim duplicated object
-                    locAim = mc.spaceLocator()
-                    mc.xform(locAim, t=(particlePos[0] + particleAimDir[0], particlePos[1] + particleAimDir[1], particlePos[2] + particleAimDir[2]), ws=True)
-                    aimCnst = mc.aimConstraint(locAim, particles[particleId], mo=False)
-                    
-                    #key duplicated object on current frame
-                    mc.setKeyframe(particles[particleId], attribute=("translate", "rotate", "scale", "visibility"))
-                    
-                    #delete aim constraint and aim locator
-                    mc.delete(aimCnst, locAim)
                 #end for
             #end for
         #end for
