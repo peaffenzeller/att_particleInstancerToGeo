@@ -152,7 +152,6 @@ class Att_particleInstancerToGeo():
             numInstances = mc.getAttr("{}.instanceCount".format(instancer["instancer"]))
             
             particles = []
-            print instancer["attrs"]
             for i in range(0, numInstances):
                 particleId = int(mc.particle(instancer["particleSys"], query=True, attribute="particleId", order=i)[0])
                 particlePos = [0, 0, 0]
@@ -189,9 +188,34 @@ class Att_particleInstancerToGeo():
                 if particleId not in particles:
                     particles.append(particleId)
                     
-                    duplicateName = "{}_particleId{}".format(instancer["obj"][particleIndex], particleId)
-                    print duplicateName
+                    dupName = "{}_particleId{}".format(instancer["obj"][particleIndex], particleId)
+                    #depending on selected geo type create duplicate or instance
+                    dupObj = ""
+                    print instancer["obj"][particleIndex]
+                    if self.data.get("geoType") == 0:
+                        dupObj = mc.duplicate(instancer["obj"][particleIndex], name=dupName)
+                    else:
+                        dupObj = mc.instance(instancer["obj"][particleIndex], name=dupName)
+                    #end if
+                    
+                    #group duplicated object, transfer particle values to group
+                    dupGrp = mc.group(empty=True, name="{}_grp".format(dupName))
+                    mc.parent(dupGrp, dupObj)
+                    mc.xform(dupGrp, t=(0, 0, 0))
+                    mc.parent(dupGrp, world=True)
+                    mc.parent(dupObj, dupGrp)
                 #end if
+                
+                mc.xform(dupGrp, t=particlePos, ws=True)
+                mc.xform(dupGrp, s=particleScale, ws=True)
+                mc.setAttr("{}.rotateOrder".format(dupGrp), instancerRoo)
+                
+                locAim = mc.spaceLocator()
+                mc.xform(locAim, t=(particlePos[0] + particleAimDir[0], particlePos[1] + particleAimDir[1], particlePos[2] + particleAimDir[2]), ws=True)
+                aimCnst = mc.aimConstraint(locAim, dupGrp, mo=False)
+                mc.delete(aimCnst, locAim)
+                
+                mc.setKeyframe(dupGrp, attribute=("translate", "rotate", "scale", "visibility"))
             #end for
         #end for
     #end def
