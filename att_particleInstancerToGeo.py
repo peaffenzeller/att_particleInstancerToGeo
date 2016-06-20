@@ -62,20 +62,25 @@ class Att_particleInstancerToGeo():
         mc.button(label="Convert", command=self._convert)
     #end def
     
+    #toggle time range start frame texfield depending on selected checkbox
     def _timeRangeStart(self, data):
         mc.textField(self.ui.get("startFrame"), edit=True, enable=data)
     #end def
     
+    #toggle time range end frame texfield depending on selected checkbox
     def _timeRangeStartEnd(self, data):
         mc.textField(self.ui.get("startFrame"), edit=True, enable=data)
         mc.textField(self.ui.get("endFrame"), edit=True, enable=data)
     #end def
     
+    #main method to convert particle instances to actual geometry
     def _convert(self, data):
+        #query user input
         self.data["geoType"] = mc.radioButton(mc.radioCollection(self.ui.get("geoType"), query=True, select=True), query=True, data=True)
         self.data["timeRange"] = mc.radioButton(mc.radioCollection(self.ui.get("timeRange"), query=True, select=True), query=True, data=True)
         self.data["byFrame"] = int(float(mc.textField(self.ui.get("byFrame"), query=True, text=True)))
         
+        #set start and end frame depending on time range checkbox
         #time slider
         if self.data["timeRange"] == 0:
             self.data["startFrame"] = int(float(mc.playbackOptions(query=True, minTime=True)))
@@ -92,16 +97,20 @@ class Att_particleInstancerToGeo():
         elif self.data["timeRange"] == 3:
             self.data["startFrame"] = int(float(mc.textField(self.ui.get("startFrame"), query=True, text=True)))
             self.data["endFrame"] = int(float(mc.textField(self.ui.get("endFrame"), query=True, text=True)))
+        #end if
         
+        #query selected objects
         sel = mc.ls(sl=True)
         instancers = []
         
+        #check object type
         for obj in sel:
             if mc.objectType(obj) == "instancer":
                 instancers.append(obj)
             #end if
         #end for
         
+        #abort if list of instancers is empty
         if len(instancers) == 0:
             om.MGlobal.displayError("No instancers selected to convert, aborting!")
             return
@@ -110,6 +119,7 @@ class Att_particleInstancerToGeo():
         tmp_instancers = instancers
         instancers = []
         for instancer in tmp_instancers:
+            #check instancer for connected input geometry
             instancedObjs = mc.listConnections(instancer + ".inputHierarchy", source=True)
             
             if instancedObjs == None:
@@ -118,6 +128,7 @@ class Att_particleInstancerToGeo():
                 continue
             #end if
             
+            #check instancer for connected particle system
             inputParticles = mc.listConnections(instancer + ".inputPoints", source=True, plugs=True)
             
             if inputParticles == None:
@@ -126,11 +137,13 @@ class Att_particleInstancerToGeo():
                 continue
             #end if
             
+            #get particle system and per particle attributes
             inputParts = inputParticles[0].split(".")
             particleSys = inputParts[0]
             #get per particle attributes
             particleAttrs = mc.getAttr("{}.{}.instanceAttributeMapping".format(inputParts[0], inputParts[1]))
             
+            #store data in dictionary and append to instancers list
             instancerData = {
                 "instancer": instancer,
                 "obj": instancedObjs,
@@ -140,15 +153,19 @@ class Att_particleInstancerToGeo():
             instancers.append(instancerData)
         #end for
         
+        #if list of checked instancers is empty - abort
         if len(instancers) == 0:
+            om.MGlobal.displayError("Not able to convert selected particle instancer(s), aborting!")
             return
         #end if
         
         for instancer in instancers:
+            #get correct rotation order
             instancerRoo = mc.getAttr("{}.rotationOrder".format(instancer["instancer"]))
             rooConversion = {0:0, 1:3, 2:4, 3:1, 4:2, 5:5}
             roo = rooConversion[instancerRoo]
             
+            #get count of all existing instances
             numInstances = mc.getAttr("{}.instanceCount".format(instancer["instancer"]))
             
             particles = []
@@ -184,14 +201,24 @@ class Att_particleInstancerToGeo():
                 if "aimDirection" in instancer["attrs"]:
                     particleAimDir = mc.particle(instancer["particleSys"], query=True, attribute=instancer["attrs"][instancer["attrs"].index("aimDirection") + 1], id=particleId)
                 #end if
+                '''
+                # MISSING
+                #    - rotation type
+                #    - aim position
+                #    - aim axis
+                #    - aim up axis
+                #    - aim world up
+                '''
                 
+                #append particle to particles list if it doesn't exist already
+                #create duplicate of instanced object
                 if particleId not in particles:
                     particles.append(particleId)
                     
                     dupName = "{}_particleId{}".format(instancer["obj"][particleIndex], particleId)
                     #depending on selected geo type create duplicate or instance
                     dupObj = ""
-                    print instancer["obj"][particleIndex]
+                    
                     if self.data.get("geoType") == 0:
                         dupObj = mc.duplicate(instancer["obj"][particleIndex], name=dupName)
                     else:
@@ -206,15 +233,19 @@ class Att_particleInstancerToGeo():
                     mc.parent(dupObj, dupGrp)
                 #end if
                 
+                #translate duplicated object to particle position
                 mc.xform(dupGrp, t=particlePos, ws=True)
+                #set scale to match particle scale
                 mc.xform(dupGrp, s=particleScale, ws=True)
+                #set rotation order to match instancer roo
                 mc.setAttr("{}.rotateOrder".format(dupGrp), instancerRoo)
-                
+                #create tmp locator to aim duplicated object
                 locAim = mc.spaceLocator()
                 mc.xform(locAim, t=(particlePos[0] + particleAimDir[0], particlePos[1] + particleAimDir[1], particlePos[2] + particleAimDir[2]), ws=True)
                 aimCnst = mc.aimConstraint(locAim, dupGrp, mo=False)
                 mc.delete(aimCnst, locAim)
                 
+                #key duplicated object on current frame
                 mc.setKeyframe(dupGrp, attribute=("translate", "rotate", "scale", "visibility"))
             #end for
         #end for
