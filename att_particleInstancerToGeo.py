@@ -144,7 +144,6 @@ class Att_particleInstancerToGeo():
             return
         #end if
         
-        '''
         for instancer in instancers:
             instancerRoo = mc.getAttr("{}.rotationOrder".format(instancer["instancer"]))
             rooConversion = {0:0, 1:3, 2:4, 3:1, 4:2, 5:5}
@@ -153,44 +152,48 @@ class Att_particleInstancerToGeo():
             numInstances = mc.getAttr("{}.instanceCount".format(instancer["instancer"]))
             
             particles = []
+            print instancer["attrs"]
             for i in range(0, numInstances):
-                particleId = mc.particle(instancer["particleSys"], query=True, attribute="particleId", order=i)
-                particlePos = mc.particle(instancer["particleSys"], query=True, attribute="worldPosition", order=i)
-                particleScale = (1, 1, 1)
-                particleRot = (0, 0, 0)
-                particleShear = (0, 0, 0)
-                particleVel = (0, 0, 0)
-                particleVis = 1
+                particleId = int(mc.particle(instancer["particleSys"], query=True, attribute="particleId", order=i)[0])
+                particlePos = [0, 0, 0]
+                particleScale = [1, 1, 1]
+                particleShear = [0, 0, 0]
+                particleVis = True
                 particleIndex = 0
+                particleRot = [0, 0, 0]
+                particleAimDir = [0, 0, 0]
                 
-                if "scale" in instancer["attrs"]:
-                    particleScale = mc.particle(instancer["particleSys"], query=True, attribute="scale", order=i)
+                if "position" in instancer["attrs"]:
+                    particlePos = mc.particle(instancer["particleSys"], query=True, attribute=instancer["attrs"][instancer["attrs"].index("position") + 1], id=particleId)
                 #end if
-                if "rotation" in instancer["attrs"]:
-                    particleRot = mc.particle(instancer["particleSys"], query=True, attribute="rotation", order=i)
+                if "scale" in instancer["attrs"]:
+                    particleScale = mc.particle(instancer["particleSys"], query=True, attribute=instancer["attrs"][instancer["attrs"].index("scale") + 1], id=particleId)
                 #end if
                 if "shear" in instancer["attrs"]:
-                    particleShear = mc.particle(instancer["particleSys"], query=True, attribute="shear", order=i)
-                #end if
-                if "velocity" in instancer["attrs"]:
-                    particleVel = mc.particle(instancer["particleSys"], query=True, attribute="velocity", order=i)
+                    particleShear = mc.particle(instancer["particleSys"], query=True, attribute=instancer["attrs"][instancer["attrs"].index("shear") + 1], id=particleId)
                 #end if
                 if "visibility" in instancer["attrs"]: 
-                    particleVis = mc.particle(instancer["particleSys"], query=True, attribute="visibility", order=i)
+                    particleVis = mc.particle(instancer["particleSys"], query=True, attribute=instancer["attrs"][instancer["attrs"].index("visibility") + 1], id=particleId)
                 #end if
                 if "objectIndex" in instancer["attrs"]:
-                    particleIndex = mc.particle(instancer["particleSys"], query=True, attribute="objectIndex", order=i)
+                    particleIndex = int(mc.particle(instancer["particleSys"], query=True, attribute=instancer["attrs"][instancer["attrs"].index("objectIndex") + 1], id=particleId)[0])
                 #end if
                 
-                instanceExists = 0
-                if particleIndex not in particles:
-                    particles.append(particleIndex)
+                if "rotation" in instancer["attrs"]:
+                    particleRot = mc.particle(instancer["particleSys"], query=True, attribute=instancer["attrs"][instancer["attrs"].index("rotation") + 1], id=particleId)
+                #end if
+                if "aimDirection" in instancer["attrs"]:
+                    particleAimDir = mc.particle(instancer["particleSys"], query=True, attribute=instancer["attrs"][instancer["attrs"].index("aimDirection") + 1], id=particleId)
+                #end if
+                
+                if particleId not in particles:
+                    particles.append(particleId)
                     
-                    duplicateName = "{}_particleId{}".format(instancer["obj"], particleId)
+                    duplicateName = "{}_particleId{}".format(instancer["obj"][particleIndex], particleId)
                     print duplicateName
                 #end if
             #end for
-        #end for'''
+        #end for
     #end def
 #end class
 
